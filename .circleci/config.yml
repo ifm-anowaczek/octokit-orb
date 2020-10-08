@@ -4,7 +4,7 @@ version: 2.1
 executorType: machine
 
 orbs:
-  cli: circleci/circleci-cli@0.1.6
+  cli: circleci/circleci-cli@0.1.8
   octokit:
     examples:
       comment-on-an-issue:
@@ -253,6 +253,10 @@ jobs:
       - attach_workspace:
           at: .
       - run: npm install
+      - cli/install
+      - run:
+          name: Check CircleCI CLI
+          command: circleci orb --help
       - run: npx semantic-release --dry-run
   release-publish:
     docker:
