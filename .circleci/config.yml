@@ -1,0 +1,229 @@
+---
+version: 2.1
+
+executorType: machine
+
+orbs:
+  octokit:
+    examples:
+      comment-on-an-issue:
+        description: "Comment on an issue"
+        usage:
+          executorType: machine
+          orbs:
+            octokit: pedrotroller@x.y.z
+          jobs:
+            your-job:
+              docker:
+                - image: circleci/node
+              steps:
+                - octokit/script:
+                    script: |
+                      github.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: '👋 Thanks for reporting!'
+                      })
+          workflows:
+            your-workflow:
+              jobs:
+                - your-job
+      apply-a-label-to-an-issue:
+        description: "Apply a label to an issue"
+        usage:
+          executorType: machine
+          orbs:
+            octokit: pedrotroller@x.y.z
+          jobs:
+            your-job:
+              docker:
+                - image: circleci/node
+              steps:
+                - octokit/script:
+                    script: |
+                      github.issues.addLabels({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        labels: ['Triage']
+                      })
+          workflows:
+            your-workflow:
+              jobs:
+                - your-job
+      welcome-a-first-time-contributor:
+        description: "Welcome a first time contributor"
+        usage:
+          executorType: machine
+          orbs:
+            octokit: pedrotroller@x.y.z
+          jobs:
+            your-job:
+              docker:
+                - image: circleci/node
+              steps:
+                - octokit/script:
+                    script: |
+                      // Get a list of all issues created by the PR opener
+                      // See: https://octokit.github.io/rest.js/#pagination
+                      const creator = context.payload.sender.login
+                      const opts = github.issues.listForRepo.endpoint.merge({
+                        ...context.issue,
+                        creator,
+                        state: 'all'
+                      })
+                      const issues = await github.paginate(opts)
+
+                      for (const issue of issues) {
+                        if (issue.number === context.issue.number) {
+                          continue
+                        }
+
+                        if (issue.pull_request) {
+                          return // Creator is already a contributor.
+                        }
+                      }
+
+                      await github.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: 'Welcome, new contributor!'
+                      })
+          workflows:
+            your-workflow:
+              jobs:
+                - your-job
+      download-data-from-a-url:
+        description: "Download data from a url"
+        usage:
+          executorType: machine
+          orbs:
+            octokit: pedrotroller@x.y.z
+          jobs:
+            your-job:
+              docker:
+                - image: circleci/node
+              steps:
+                - octokit/script:
+                    script: |
+                      const diff_url = context.payload.pull_request.diff_url
+                      const result = await github.request(diff_url)
+                      console.log(result)
+          workflows:
+            your-workflow:
+              jobs:
+                - your-job
+      run-custom-graphql-queries:
+        description: "Run custom GraphQL queries"
+        usage:
+          executorType: machine
+          orbs:
+            octokit: pedrotroller@x.y.z
+          jobs:
+            your-job:
+              docker:
+                - image: circleci/node
+              steps:
+                - octokit/script:
+                    script: |
+                      const query = `query($owner:String!, $name:String!) {
+                        repository(owner:$owner, name:$name){
+                          issues(first:100, labels: [$label]) {
+                            nodes {
+                              id
+                            }
+                          }
+                        }
+                      }`;
+                      const variables = {
+                        owner: context.repo.owner,
+                        name: context.repo.repo,
+                        label: 'wontfix'
+                      }
+                      const result = await github.graphql(query, variables)
+                      console.log(result)
+          workflows:
+            your-workflow:
+              jobs:
+                - your-job
+    commands:
+      script:
+        description: "Run a script with octokit"
+        parameters:
+          github-token:
+            description: "name of the environment variable containing the Github access token"
+            type: string
+            default: "GITHUB_TOKEN"
+          script:
+            description: "script to execute"
+            type: string
+        steps:
+          - run:
+              name: "Install @octokit/rest"
+              command: |
+                mkdir ./.orbspace/octokit -p
+
+                cd ./.orbspace/octokit
+
+                npm install @octokit/rest
+          - run:
+              name: "Prepare javascript application"
+              command: |
+                mkdir ./.orbspace/octokit -p
+
+                echo '{}' \
+                    | jq ". + {\"payload\": (.payload + {\"repo\": {\"owner\": \"${CIRCLE_PROJECT_USERNAME}\", \"repo\": \"${CIRCLE_PROJECT_REPONAME}\"}})}" \
+                    | jq ". + {\"payload\": (.payload + {\"sender\": {\"login\": \"${CIRCLE_USERNAME}\"}})}" \
+                    | jq "$([[ ! -z \"$CIRCLE_PULL_REQUEST\" ]] && echo ". + {\"payload\": (.payload + {\"issue\": ({\"number\": ${CIRCLE_PULL_REQUEST##*/}} + .payload.repo)})}" || echo ".")" \
+                    | jq "$([[ ! -z \"$CIRCLE_PULL_REQUEST\" ]] && echo ". + {\"payload\": (.payload + {\"pull_request\": ({\"number\": ${CIRCLE_PULL_REQUEST##*/}} + .payload.repo)})}" || echo ".")" \
+                    | jq ". + {\"sha\": \"${CIRCLE_SHA1}\"}" \
+                    | jq ". + {\"ref\": \"${CIRCLE_BRANCH}\"}" \
+                    | jq ". + {\"author\": \"${CIRCLE_USERNAME}\"}" \
+                    | jq ". + {\"job\": \"${CIRCLE_JOB}\"}" \
+                    | jq ". + {\"runNumber\": ${CIRCLE_BUILD_NUM}}" \
+                    | jq ". + .payload" \
+                    > ./.orbspace/octokit/context.json
+
+                cat > ./.orbspace/octokit/script.js \<<'_EOF'
+                exports.script = async function (github, context) { << parameters.script >>;
+                };
+                _EOF
+
+                cat > ./.orbspace/octokit/app.js \<<'_EOF'
+                const { Octokit } = require("@octokit/rest");
+
+                require("./script.js")
+                  .script(
+                    new Octokit({
+                      auth: process.env['<< parameters.github-token >>']
+                    }),
+                    require("./context.json")
+                  )
+                ;
+                _EOF
+
+                cat ./.orbspace/octokit/context.json | jq '.'
+
+          - run:
+              name: "Execute javascript"
+              command: |
+                node --trace-warnings ./.orbspace/octokit/app.js
+
+references:
+  defaults: &defaults
+
+jobs:
+  debug:
+    docker:
+      - image: circleci/node
+    steps:
+      - octokit/script:
+          script: |
+            console.log(context);
+
+workflows:
+  main:
+    jobs:
+      - debug
