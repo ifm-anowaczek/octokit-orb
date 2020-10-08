@@ -262,6 +262,7 @@ jobs:
       - attach_workspace:
           at: .
       - run: npm install
+      - cli/install
       - run: npx semantic-release
 
 workflows:
