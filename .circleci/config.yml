@@ -4,11 +4,13 @@ version: 2.1
 executorType: machine
 
 orbs:
+  cli: circleci/circleci-cli@0.1.6
   octokit:
     examples:
       comment-on-an-issue:
         description: "Comment on an issue"
         usage:
+          version: 2.1
           executorType: machine
           orbs:
             octokit: pedrotroller@x.y.z
@@ -32,6 +34,7 @@ orbs:
       apply-a-label-to-an-issue:
         description: "Apply a label to an issue"
         usage:
+          version: 2.1
           executorType: machine
           orbs:
             octokit: pedrotroller@x.y.z
@@ -55,6 +58,7 @@ orbs:
       welcome-a-first-time-contributor:
         description: "Welcome a first time contributor"
         usage:
+          version: 2.1
           executorType: machine
           orbs:
             octokit: pedrotroller@x.y.z
@@ -98,6 +102,7 @@ orbs:
       download-data-from-a-url:
         description: "Download data from a url"
         usage:
+          version: 2.1
           executorType: machine
           orbs:
             octokit: pedrotroller@x.y.z
@@ -118,6 +123,7 @@ orbs:
       run-custom-graphql-queries:
         description: "Run custom GraphQL queries"
         usage:
+          version: 2.1
           executorType: machine
           orbs:
             octokit: pedrotroller@x.y.z
@@ -222,8 +228,29 @@ jobs:
       - octokit/script:
           script: |
             console.log(context);
+  orb-build:
+    docker:
+      - image: mikefarah/yq
+    steps:
+      - checkout
+      - run: yq read .circleci/config.yml 'orbs.octokit' | yq write - version $(yq read .circleci/config.yml version) > @orb.yml
+      - persist_to_workspace:
+          root: .
+          paths:
+            - "@orb.yml"
+  orb-validate:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: .
+      - cli/install
+      - run: circleci orb validate @orb.yml
 
 workflows:
   main:
     jobs:
       - debug
+      - orb-build
+      - orb-validate:
+          requires:
+            - orb-build
