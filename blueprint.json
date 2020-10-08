@@ -14,7 +14,7 @@
         {
             "alt": "CircleCI",
             "url": "https://app.circleci.com/pipelines/github/PedroTroller/octokit-orb",
-            "img": "https://img.shields.io/circleci/build/gh/PedroTroller/octokit-orb/master?label=CircleCI&style=for-the-badge&token=1695463f8089acd7a8e47988b47db6032774f3dc"
+            "img": "https://img.shields.io/circleci/build/gh/PedroTroller/octokit-orb/main?label=CircleCI&style=for-the-badge&token=1695463f8089acd7a8e47988b47db6032774f3dc"
         }
     ]
 }
