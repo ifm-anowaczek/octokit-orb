@@ -1,0 +1,20 @@
+{
+    "input": "blueprint.md",
+    "output": "README.md",
+    "line": "water",
+    "pkg": {
+        "name": "pectotroller/octokit-orb",
+        "description": "Use @octokit/rest with a CircleCI orb"
+    },
+    "logo": {
+        "src": "./docs/img/logo.png",
+        "width": "800"
+    },
+    "badges": [
+        {
+            "alt": "CircleCI",
+            "url": "https://app.circleci.com/pipelines/github/PedroTroller/octokit-orb",
+            "img": "https://img.shields.io/circleci/build/gh/PedroTroller/octokit-orb/master?label=CircleCI&style=for-the-badge&token=1695463f8089acd7a8e47988b47db6032774f3dc"
+        }
+    ]
+}
