@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "semantic-release": "^17.1.2",
+    "semantic-release-circleci-orb": "^1.1.1"
+  }
+}

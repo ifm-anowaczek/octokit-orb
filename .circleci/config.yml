@@ -245,6 +245,24 @@ jobs:
           at: .
       - cli/install
       - run: circleci orb validate @orb.yml
+  release-check:
+    docker:
+      - image: circleci/node
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: npm install
+      - run: npx semantic-release --dry-run
+  release-publish:
+    docker:
+      - image: circleci/node
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run: npm install
+      - run: npx semantic-release
 
 workflows:
   main:
@@ -254,3 +272,14 @@ workflows:
       - orb-validate:
           requires:
             - orb-build
+      - release-check:
+          requires:
+            - orb-build
+            - orb-validate
+      - release-publish:
+          requires:
+            - release-check
+          filters:
+            branches:
+              only:
+                - main
