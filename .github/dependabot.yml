@@ -1,0 +1,15 @@
+---
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: .
+    labels:
+      - dependencies
+    schedule:
+      interval: daily
+      time: '00:00'
+    open-pull-requests-limit: 2
+    target-branch: main
+    commit-message:
+      prefix: chore
+      prefix-development: chore
