@@ -1,9 +1,9 @@
 <!-- ⚠️ This README has been generated from the file(s) "blueprint.md" ⚠️--><p align="center">
   <img src="./docs/img/logo.png" alt="Logo" width="800" height="auto" />
 </p>
-<h1 align="center">pectotroller/octokit-orb</h1>
+<h1 align="center">pedrotroller/octokit-orb</h1>
 <p align="center">
-		<a href="https://app.circleci.com/pipelines/github/PedroTroller/octokit-orb"><img alt="CircleCI" src="https://img.shields.io/circleci/build/gh/PedroTroller/octokit-orb/master?label=CircleCI&style=for-the-badge&token=1695463f8089acd7a8e47988b47db6032774f3dc" height="20"/></a>
+		<a href="https://app.circleci.com/pipelines/github/PedroTroller/octokit-orb"><img alt="CircleCI" src="https://img.shields.io/circleci/build/gh/PedroTroller/octokit-orb/main?label=CircleCI&style=for-the-badge&token=1695463f8089acd7a8e47988b47db6032774f3dc" height="20"/></a>
 	</p>
 
 <p align="center">
@@ -18,8 +18,8 @@
 
 ## ➤ Table of Contents
 
-* [➤ How to use ?](#-how-to-use-)
 * [➤ Ambition](#-ambition)
+* [➤ How to use ?](#-how-to-use-)
 * [➤ Documentation](#-documentation)
 	* [@appnest/readme](#appnestreadme)
 	* [How to rebuild the documentation ?](#how-to-rebuild-the-documentation-)
@@ -27,18 +27,18 @@
 	* [Commit name convention](#commit-name-convention)
 	* [Describe the content of your contribution](#describe-the-content-of-your-contribution)
 
-[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/water.png)](#how-to-use-)
-
-## ➤ How to use ?
-
-Read the documentation from the [CircleCI Orb Registry](https://circleci.com/developer/orbs/orb/pedrotroller/octokit).
-
-
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/water.png)](#ambition)
 
 ## ➤ Ambition
 
 The ambition of this project is to try to bring to CircleCI the functionality that [actions/github-script](https://github.com/actions/github-script) brings to [Github Actions](https://github.com/features/actions). This porting is done through a CircleCI Orb.
+
+
+[![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/water.png)](#how-to-use-)
+
+## ➤ How to use ?
+
+Read the documentation from the [CircleCI Orb Registry](https://circleci.com/developer/orbs/orb/pedrotroller/octokit).
 
 
 [![-----------------------------------------------------](https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/water.png)](#documentation)
