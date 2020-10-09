@@ -182,8 +182,10 @@ orbs:
                 echo '{}' \
                     | jq ". + {\"payload\": (.payload + {\"repo\": {\"owner\": \"${CIRCLE_PROJECT_USERNAME}\", \"repo\": \"${CIRCLE_PROJECT_REPONAME}\"}})}" \
                     | jq ". + {\"payload\": (.payload + {\"sender\": {\"login\": \"${CIRCLE_USERNAME}\"}})}" \
-                    | jq "$([[ ! -z \"$CIRCLE_PULL_REQUEST\" ]] && echo ". + {\"payload\": (.payload + {\"issue\": ({\"number\": ${CIRCLE_PULL_REQUEST##*/}} + .payload.repo)})}" || echo ".")" \
-                    | jq "$([[ ! -z \"$CIRCLE_PULL_REQUEST\" ]] && echo ". + {\"payload\": (.payload + {\"pull_request\": ({\"number\": ${CIRCLE_PULL_REQUEST##*/}} + .payload.repo)})}" || echo ".")" \
+                    | jq "if \"${CIRCLE_PULL_REQUEST}\" == \"\" then . else (. + {\"payload\": (.payload + ({\"issue\": {\"number\": (\"${CIRCLE_PULL_REQUEST}\" | sub(\"/ *$\";\"\") | split(\"/\")[-1] | tonumber)}}))}) end" \
+                    | jq "if .payload | has(\"issue\") then (. + {\"payload\": (.payload + {\"issue\": (.payload.issue + .payload.repo)})}) else . end" \
+                    | jq "if \"${CIRCLE_PULL_REQUEST}\" == \"\" then . else (. + {\"payload\": (.payload + ({\"pull_request\": {\"number\": (\"${CIRCLE_PULL_REQUEST}\" | sub(\"/ *$\";\"\") | split(\"/\")[-1]) | tonumber}}))}) end" \
+                    | jq "if .payload | has(\"pull_request\") then (. + {\"payload\": (.payload + {\"pull_request\": (.payload.pull_request + .payload.repo)})}) else . end" \
                     | jq ". + {\"sha\": \"${CIRCLE_SHA1}\"}" \
                     | jq ". + {\"ref\": \"${CIRCLE_BRANCH}\"}" \
                     | jq ". + {\"author\": \"${CIRCLE_USERNAME}\"}" \
@@ -221,18 +223,10 @@ references:
   defaults: &defaults
 
 jobs:
-  debug:
-    docker:
-      - image: circleci/node
-    steps:
-      - octokit/script:
-          script: |
-            console.log(context);
   test-context-with-pull-request:
     docker:
       - image: circleci/node
     steps:
-      - checkout
       - run: |
           echo "export CIRCLE_BRANCH=feat/branch" >> $BASH_ENV
           echo "export CIRCLE_BUILD_NUM=123" >> $BASH_ENV
@@ -259,7 +253,6 @@ jobs:
     docker:
       - image: circleci/node
     steps:
-      - checkout
       - run: |
           echo "export CIRCLE_BRANCH=feat/branch" >> $BASH_ENV
           echo "export CIRCLE_BUILD_NUM=123" >> $BASH_ENV
@@ -329,14 +322,15 @@ workflows:
     jobs:
       - test-context-with-pull-request
       - test-context-without-pull-request
-      - debug
-      - orb-build
+      - orb-build:
+          requires:
+            - test-context-with-pull-request
+            - test-context-without-pull-request
       - orb-validate:
           requires:
             - orb-build
       - release-check:
           requires:
-            - orb-build
             - orb-validate
       - release-publish:
           requires:
