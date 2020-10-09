@@ -228,6 +228,61 @@ jobs:
       - octokit/script:
           script: |
             console.log(context);
+  test-context-with-pull-request:
+    docker:
+      - image: circleci/node
+    steps:
+      - checkout
+      - run: |
+          echo "export CIRCLE_BRANCH=feat/branch" >> $BASH_ENV
+          echo "export CIRCLE_BUILD_NUM=123" >> $BASH_ENV
+          echo "export CIRCLE_JOB=test" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_REPONAME=Octo" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_USERNAME=Github" >> $BASH_ENV
+          echo "export CIRCLE_PULL_REQUEST=https://github.com/Github/Octo/pull/404" >> $BASH_ENV
+          echo "export CIRCLE_SHA1=a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" >> $BASH_ENV
+          echo "export CIRCLE_USERNAME=PedroTroller" >> $BASH_ENV
+      - octokit/script:
+          script: |
+            fs = require('fs');
+            fs.writeFile(
+              '/tmp/context.json',
+              JSON.stringify(context),
+              () => {}
+            );
+      - run: cat /tmp/context.json | jq '.'
+      - run: cat /tmp/context.json | jq -e ".issue.number == 404"
+      - run: cat /tmp/context.json | jq -e ".repo.owner == \"Github\""
+      - run: cat /tmp/context.json | jq -e ".repo.repo == \"Octo\""
+      - run: cat /tmp/context.json | jq -e ".payload.sender.login == \"PedroTroller\""
+  test-context-without-pull-request:
+    docker:
+      - image: circleci/node
+    steps:
+      - checkout
+      - run: |
+          echo "export CIRCLE_BRANCH=feat/branch" >> $BASH_ENV
+          echo "export CIRCLE_BUILD_NUM=123" >> $BASH_ENV
+          echo "export CIRCLE_JOB=test" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_REPONAME=Octo" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_USERNAME=Github" >> $BASH_ENV
+          echo "export CIRCLE_SHA1=a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" >> $BASH_ENV
+          echo "export CIRCLE_USERNAME=PedroTroller" >> $BASH_ENV
+          echo "unset CIRCLE_PULL_REQUEST" >> $BASH_ENV
+      - octokit/script:
+          script: |
+            fs = require('fs');
+            fs.writeFile(
+              '/tmp/context.json',
+              JSON.stringify(context),
+              () => {}
+            );
+      - run: cat /tmp/context.json | jq '.'
+      - run: cat /tmp/context.json | jq -e ". | has(\"issue\") == false"
+      - run: cat /tmp/context.json | jq -e ".payload | has(\"issue\") == false"
+      - run: cat /tmp/context.json | jq -e ".repo.owner == \"Github\""
+      - run: cat /tmp/context.json | jq -e ".repo.repo == \"Octo\""
+      - run: cat /tmp/context.json | jq -e ".payload.sender.login == \"PedroTroller\""
   orb-build:
     docker:
       - image: mikefarah/yq
@@ -272,6 +327,8 @@ jobs:
 workflows:
   main:
     jobs:
+      - test-context-with-pull-request
+      - test-context-without-pull-request
       - debug
       - orb-build
       - orb-validate:
