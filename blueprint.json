@@ -3,7 +3,7 @@
     "output": "README.md",
     "line": "water",
     "pkg": {
-        "name": "pectotroller/octokit-orb",
+        "name": "pedrotroller/octokit-orb",
         "description": "Use @octokit/rest with a CircleCI orb"
     },
     "logo": {
