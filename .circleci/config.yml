@@ -182,8 +182,10 @@ orbs:
                 echo '{}' \
                     | jq ". + {\"payload\": (.payload + {\"repo\": {\"owner\": \"${CIRCLE_PROJECT_USERNAME}\", \"repo\": \"${CIRCLE_PROJECT_REPONAME}\"}})}" \
                     | jq ". + {\"payload\": (.payload + {\"sender\": {\"login\": \"${CIRCLE_USERNAME}\"}})}" \
-                    | jq "$([[ ! -z \"$CIRCLE_PULL_REQUEST\" ]] && echo ". + {\"payload\": (.payload + {\"issue\": ({\"number\": ${CIRCLE_PULL_REQUEST##*/}} + .payload.repo)})}" || echo ".")" \
-                    | jq "$([[ ! -z \"$CIRCLE_PULL_REQUEST\" ]] && echo ". + {\"payload\": (.payload + {\"pull_request\": ({\"number\": ${CIRCLE_PULL_REQUEST##*/}} + .payload.repo)})}" || echo ".")" \
+                    | jq "if \"${CIRCLE_PULL_REQUEST}\" == \"\" then . else (. + {\"payload\": (.payload + ({\"issue\": {\"number\": (\"${CIRCLE_PULL_REQUEST}\" | sub(\"/ *$\";\"\") | split(\"/\")[-1] | tonumber)}}))}) end" \
+                    | jq "if .payload | has(\"issue\") then (. + {\"payload\": (.payload + {\"issue\": (.payload.issue + .payload.repo)})}) else . end" \
+                    | jq "if \"${CIRCLE_PULL_REQUEST}\" == \"\" then . else (. + {\"payload\": (.payload + ({\"pull_request\": {\"number\": (\"${CIRCLE_PULL_REQUEST}\" | sub(\"/ *$\";\"\") | split(\"/\")[-1]) | tonumber}}))}) end" \
+                    | jq "if .payload | has(\"pull_request\") then (. + {\"payload\": (.payload + {\"pull_request\": (.payload.pull_request + .payload.repo)})}) else . end" \
                     | jq ". + {\"sha\": \"${CIRCLE_SHA1}\"}" \
                     | jq ". + {\"ref\": \"${CIRCLE_BRANCH}\"}" \
                     | jq ". + {\"author\": \"${CIRCLE_USERNAME}\"}" \
@@ -221,13 +223,59 @@ references:
   defaults: &defaults
 
 jobs:
-  debug:
+  test-context-with-pull-request:
     docker:
       - image: circleci/node
     steps:
+      - run: |
+          echo "export CIRCLE_BRANCH=feat/branch" >> $BASH_ENV
+          echo "export CIRCLE_BUILD_NUM=123" >> $BASH_ENV
+          echo "export CIRCLE_JOB=test" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_REPONAME=Octo" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_USERNAME=Github" >> $BASH_ENV
+          echo "export CIRCLE_PULL_REQUEST=https://github.com/Github/Octo/pull/404" >> $BASH_ENV
+          echo "export CIRCLE_SHA1=a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" >> $BASH_ENV
+          echo "export CIRCLE_USERNAME=PedroTroller" >> $BASH_ENV
       - octokit/script:
           script: |
-            console.log(context);
+            fs = require('fs');
+            fs.writeFile(
+              '/tmp/context.json',
+              JSON.stringify(context),
+              () => {}
+            );
+      - run: cat /tmp/context.json | jq '.'
+      - run: cat /tmp/context.json | jq -e ".issue.number == 404"
+      - run: cat /tmp/context.json | jq -e ".repo.owner == \"Github\""
+      - run: cat /tmp/context.json | jq -e ".repo.repo == \"Octo\""
+      - run: cat /tmp/context.json | jq -e ".payload.sender.login == \"PedroTroller\""
+  test-context-without-pull-request:
+    docker:
+      - image: circleci/node
+    steps:
+      - run: |
+          echo "export CIRCLE_BRANCH=feat/branch" >> $BASH_ENV
+          echo "export CIRCLE_BUILD_NUM=123" >> $BASH_ENV
+          echo "export CIRCLE_JOB=test" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_REPONAME=Octo" >> $BASH_ENV
+          echo "export CIRCLE_PROJECT_USERNAME=Github" >> $BASH_ENV
+          echo "export CIRCLE_SHA1=a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" >> $BASH_ENV
+          echo "export CIRCLE_USERNAME=PedroTroller" >> $BASH_ENV
+          echo "unset CIRCLE_PULL_REQUEST" >> $BASH_ENV
+      - octokit/script:
+          script: |
+            fs = require('fs');
+            fs.writeFile(
+              '/tmp/context.json',
+              JSON.stringify(context),
+              () => {}
+            );
+      - run: cat /tmp/context.json | jq '.'
+      - run: cat /tmp/context.json | jq -e ". | has(\"issue\") == false"
+      - run: cat /tmp/context.json | jq -e ".payload | has(\"issue\") == false"
+      - run: cat /tmp/context.json | jq -e ".repo.owner == \"Github\""
+      - run: cat /tmp/context.json | jq -e ".repo.repo == \"Octo\""
+      - run: cat /tmp/context.json | jq -e ".payload.sender.login == \"PedroTroller\""
   orb-build:
     docker:
       - image: mikefarah/yq
@@ -272,14 +320,17 @@ jobs:
 workflows:
   main:
     jobs:
-      - debug
-      - orb-build
+      - test-context-with-pull-request
+      - test-context-without-pull-request
+      - orb-build:
+          requires:
+            - test-context-with-pull-request
+            - test-context-without-pull-request
       - orb-validate:
           requires:
             - orb-build
       - release-check:
           requires:
-            - orb-build
             - orb-validate
       - release-publish:
           requires:
