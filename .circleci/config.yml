@@ -200,7 +200,7 @@ orbs:
                 _EOF
 
                 cat > ./.orbspace/octokit/app.js \<<'_EOF'
-                const { Octokit } = require("@octokit/rest");
+                import { Octokit } from "@octokit/rest";
 
                 require("./script.js")
                   .script(
